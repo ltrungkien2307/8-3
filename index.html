@@ -138,11 +138,10 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000; touch-act
     <div class="inner-btn">💗</div>
   </div>
   <div class="btn-label">ẤN GIỮ ĐỂ BẮT ĐẦU</div>
-  <div class="btn-sub">hold 2 seconds</div>
 </div>
 
-<div id="hintSphere" class="hint">✦ Chạm vào quả cầu để vỡ ra ✦</div>
-<div id="hintDrag"   class="hint">✦ Kéo để xoay không gian 3D ✦</div>
+<div id="hintSphere" class="hint">Chạm vào quả cầu</div>
+<div id="hintDrag"   class="hint">Thử xoay nó đi</div>
 
 <div id="letterIcon">
   <div class="env-wrap">
@@ -152,28 +151,25 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000; touch-act
     <div class="env-l"></div>
     <div class="env-r"></div>
   </div>
-  <span>Thư gửi bạn 💌</span>
+  <span>💌</span>
 </div>
 
 <div id="letterModal">
   <div class="letter-paper" id="letterPaper">
     <button class="ltr-close" id="ltrClose">✕</button>
-    <div class="ltr-title">✦ Gửi Người Phụ Nữ Tuyệt Vời ✦</div>
+    <div class="ltr-title">✦ Gửi đến em ✦</div>
     <div class="ltr-hearts">🌸 💕 🌸</div>
     <div class="ltr-body">
-      Trong cuộc đời này,<br>
-      bạn là ánh sáng dịu dàng nhất,<br>
-      là sức mạnh thầm lặng và phi thường.<br><br>
-      Mỗi nụ cười của bạn<br>
-      làm thế giới thêm ấm áp,<br>
-      mỗi bước đi của bạn<br>
-      đều tô điểm cho cuộc sống thêm ý nghĩa.<br><br>
-      Chúc bạn luôn được yêu thương,<br>
-      trân trọng và hạnh phúc<br>
-      mỗi ngày trong cuộc đời!
+      Chúc em có ngàu lễ 8/3 trọn vẹn,<br>
+      Chúc em luôn vui vẻ và hạnh phúc,<br>
+      Chúc em mỗi ngày đều cười tươi.<br><br>
+      <br>
+      Mong em thích món quà nhỏ kia,<br>
+      hẹn lần sau sẽ có món quà thiệc là to bự<br>
+      
     </div>
     <div class="ltr-hearts" style="margin-top:16px">💐 🌺 💐</div>
-    <div class="ltr-sign">— Với tất cả yêu thương 💝</div>
+    <div class="ltr-sign">—From TrungKien</div>
   </div>
 </div>
 
@@ -187,11 +183,18 @@ html,body { width:100%; height:100%; overflow:hidden; background:#000; touch-act
 //  Ví dụ: 'images/photo1.jpg'
 // ══════════════════════════════════════════════════
 const IMAGE_PATHS = [
-  // === THÊM ẢNH VÀO ĐÂY ===
-  // 'images/photo1.jpg',
-  // 'images/photo2.jpg',
-  // 'images/photo3.jpg',
-  // ...
+  'images/img1.png',
+  'images/img2.png',
+  'images/img3.png',
+  'images/img4.png',
+  'images/img5.png',
+  'images/img6.png',
+  'images/img7.png',
+  'images/img8.png',
+  'images/img9.png',
+  'images/img10.png',
+  'images/img11.png',
+  'images/img12.png',
 ];
 
 // ══════════════════════════════════════════════════
@@ -410,11 +413,10 @@ function disperse() {
 }
 
 const MSGS = [
-  "Chúc Mừng 8/3",
-  "Ngày Quốc Tế Phụ Nữ",
-  "Bạn thật tuyệt vời 💕",
-  "Luôn tỏa sáng nhé 🌸",
-  "Yêu bạn rất nhiều 💝"
+  "À ờm thì...",
+  "Hôm nay là 8.3",
+  "Anh có món quà nho nhỏ,",
+  "Mong  là sẽ làm em vui",
 ];
 let msgIdx = 0;
 
@@ -425,7 +427,8 @@ function runMessages() {
     return;
   }
   morphText(MSGS[msgIdx++]);
-  setTimeout(() => { disperse(); setTimeout(runMessages, 1050); }, 2900);
+  // Tăng thời gian dừng chữ lên 5.5s (5500ms) để dễ đọc hơn
+  setTimeout(() => { disperse(); setTimeout(runMessages, 1050); }, 5500);
 }
 
 // 2D loop
@@ -784,191 +787,47 @@ ltrClose.addEventListener('click', closeLetter);
 letterModal.addEventListener('click', e=>{ if(e.target===letterModal) closeLetter(); });
 
 // ──────────────────────────────────────────────────
-//  MUSIC — Web Audio API procedural ambient
-//  Creates a dreamy, soft background melody
+//  MUSIC — HTML5 Audio (File thực: music.mp3)
 // ──────────────────────────────────────────────────
-let audioCtx = null, musicPlaying = false, musicNodes = [];
+let audioObj = null;
 const musicBtn = document.getElementById('musicBtn');
 
 function initMusic() {
-  if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  startMusic();
-}
-
-function startMusic() {
-  if (musicPlaying) return;
-  musicPlaying = true;
-  musicBtn.classList.add('playing');
-
-  const master = audioCtx.createGain();
-  master.gain.setValueAtTime(0, audioCtx.currentTime);
-  master.gain.linearRampToValueAtTime(0.28, audioCtx.currentTime + 2);
-  master.connect(audioCtx.destination);
-  musicNodes.push(master);
-
-  // Soft reverb via convolver
-  const convolver = audioCtx.createConvolver();
-  const reverbBuf = createReverb(audioCtx, 3.5, 2.5);
-  convolver.buffer = reverbBuf;
-  const reverbGain = audioCtx.createGain();
-  reverbGain.gain.value = 0.45;
-  convolver.connect(reverbGain);
-  reverbGain.connect(master);
-
-  // Low-pass filter for warmth
-  const lpf = audioCtx.createBiquadFilter();
-  lpf.type = 'lowpass';
-  lpf.frequency.value = 2800;
-  lpf.Q.value = 0.7;
-  lpf.connect(master);
-  lpf.connect(convolver);
-
-  // Pentatonic scale — dreamy, always consonant
-  // C4=261.6, D4=293.7, E4=329.6, G4=392, A4=440, C5=523.3, D5=587.3, E5=659.3
-  const PENTA = [261.6, 293.7, 329.6, 392.0, 440.0, 523.3, 587.3, 659.3, 783.9, 880.0];
-
-  // Pad — slowly evolving chords
-  function playPad(freq, time, dur) {
-    for (let h = 1; h <= 4; h++) {
-      const osc = audioCtx.createOscillator();
-      const gn  = audioCtx.createGain();
-      osc.type = h===1 ? 'sine' : 'triangle';
-      osc.frequency.value = freq * h * (1 + (Math.random()-.5)*.003); // tiny detune
-      gn.gain.setValueAtTime(0, time);
-      gn.gain.linearRampToValueAtTime(.022/h, time + .8);
-      gn.gain.setValueAtTime(.022/h, time + dur - .8);
-      gn.gain.linearRampToValueAtTime(0, time + dur);
-      osc.connect(gn); gn.connect(lpf);
-      osc.start(time); osc.stop(time + dur);
-      musicNodes.push(osc);
-    }
-  }
-
-  // Melody — gentle arpeggiated notes
-  function playNote(freq, time, dur, vol=0.06) {
-    const osc = audioCtx.createOscillator();
-    const gn  = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, time);
-    // Vibrato
-    const lfo = audioCtx.createOscillator();
-    const lfg = audioCtx.createGain();
-    lfo.frequency.value = 5.5;
-    lfg.gain.value = 2.5;
-    lfo.connect(lfg); lfg.connect(osc.frequency);
-    lfo.start(time); lfo.stop(time+dur);
-
-    gn.gain.setValueAtTime(0, time);
-    gn.gain.linearRampToValueAtTime(vol, time + .05);
-    gn.gain.setValueAtTime(vol, time + dur*.65);
-    gn.gain.exponentialRampToValueAtTime(.001, time + dur);
-    osc.connect(gn); gn.connect(lpf);
-    osc.start(time); osc.stop(time + dur);
-    musicNodes.push(osc, lfo);
-  }
-
-  // Bass — slow root movement
-  function playBass(freq, time, dur) {
-    const osc = audioCtx.createOscillator();
-    const gn  = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq * .5;
-    gn.gain.setValueAtTime(0, time);
-    gn.gain.linearRampToValueAtTime(.055, time+.4);
-    gn.gain.linearRampToValueAtTime(.04, time+dur-.4);
-    gn.gain.linearRampToValueAtTime(0, time+dur);
-    osc.connect(gn); gn.connect(master);
-    osc.start(time); osc.stop(time+dur);
-    musicNodes.push(osc);
-  }
-
-  // Sequence loop
-  const BEAT = 0.55;
-  let t = audioCtx.currentTime + 0.2;
-
-  function scheduleLoop() {
-    if (!musicPlaying) return;
-    const now = audioCtx.currentTime;
-    // Schedule 16 beats ahead
-    while (t < now + 8) {
-      const bar = Math.floor((t - audioCtx.currentTime) / (BEAT*16)) % 4;
-
-      // Chord roots per bar
-      const roots = [PENTA[0], PENTA[2], PENTA[4], PENTA[2]]; // C E A E
-      const root  = roots[bar];
-
-      // Pad chord every 4 beats
-      if (Math.round((t - audioCtx.currentTime) / BEAT) % 4 === 0) {
-        playPad(root, t, BEAT*4);
-        playPad(root * 1.25, t, BEAT*4);   // major third
-        playPad(root * 1.5,  t, BEAT*4);   // fifth
-        playBass(root, t, BEAT*4);
-      }
-
-      // Melody note — random pick from pentatonic, biased toward higher notes
-      if (Math.random() < .7) {
-        const hi = Math.floor(PENTA.length * .5) + Math.floor(Math.random() * (PENTA.length*.5));
-        const freq = PENTA[Math.min(hi, PENTA.length-1)];
-        const dur  = BEAT * (Math.random()<.3 ? 2 : 1);
-        playNote(freq, t, dur, .05 + Math.random()*.03);
-      }
-
-      // Bell-like high accent occasionally
-      if (Math.random() < .18) {
-        const bfreq = PENTA[Math.floor(PENTA.length*.7 + Math.random()*PENTA.length*.3)];
-        playNote(bfreq * 2, t, BEAT * .5, .025);
-      }
-
-      t += BEAT;
-    }
-    setTimeout(scheduleLoop, 1500);
-  }
-  scheduleLoop();
+  if (audioObj) return;
+  audioObj = new Audio('music.mp3');
+  audioObj.loop = true;
+  audioObj.volume = 0.5;
+  audioObj.play().then(() => {
+    musicBtn.classList.add('playing');
+  }).catch(e => console.log("Cần tương tác để phát nhạc"));
 }
 
 function stopMusic() {
-  musicPlaying = false;
-  musicBtn.classList.remove('playing');
-  musicNodes.forEach(n => { try { n.stop && n.stop(); n.disconnect && n.disconnect(); } catch(e){} });
-  musicNodes = [];
-  if (audioCtx) {
-    audioCtx.close();
-    audioCtx = null;
+  if (!audioObj) return;
+  if (!audioObj.paused) {
+    audioObj.pause();
+    musicBtn.classList.add('muted');
+    musicBtn.classList.remove('playing');
+  } else {
+    audioObj.play();
+    musicBtn.classList.remove('muted');
+    musicBtn.classList.add('playing');
   }
-}
-
-// Impulse response for reverb
-function createReverb(ctx, dur, decay) {
-  const sr   = ctx.sampleRate;
-  const len  = sr * dur;
-  const buf  = ctx.createBuffer(2, len, sr);
-  for (let c = 0; c < 2; c++) {
-    const d = buf.getChannelData(c);
-    for (let i = 0; i < len; i++) {
-      d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, decay);
-    }
-  }
-  return buf;
 }
 
 musicBtn.addEventListener('click', () => {
-  if (!audioCtx || !musicPlaying) {
-    initMusic();
-    musicBtn.classList.remove('muted');
-  } else {
-    stopMusic();
-    musicBtn.classList.add('muted');
-  }
+  if (!audioObj) initMusic();
+  else stopMusic();
 });
 musicBtn.addEventListener('touchend', e => {
   e.preventDefault();
-  musicBtn.click(); 
+  if (!audioObj) initMusic();
+  else stopMusic();
 }, { passive:false });
 
 // Auto-start music on first user interaction (hold button press)
 function autoStartMusic() {
-  if (!audioCtx) initMusic();
+  if (!audioObj) initMusic();
   document.removeEventListener('mousedown', autoStartMusic);
   document.removeEventListener('touchstart', autoStartMusic);
 }
