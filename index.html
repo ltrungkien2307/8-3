@@ -130,6 +130,7 @@ html,body {
 
 <canvas id="canvas"></canvas>
 <canvas id="threeCanvas"></canvas>
+<div id="dateBadge">8 . 3 . 2025</div>
 <div id="musicBtn" title="Nhạc nền"><span class="note">🎵</span></div>
 
 <div id="holdBtn">
@@ -141,10 +142,11 @@ html,body {
     <div class="inner-btn">💗</div>
   </div>
   <div class="btn-label">ẤN GIỮ ĐỂ BẮT ĐẦU</div>
+  <div class="btn-sub">hold 2 seconds</div>
 </div>
 
-<div id="hintSphere" class="hint">Chạm vào quả cầu</div>
-<div id="hintDrag"   class="hint">Thử xoay nó đi</div>
+<div id="hintSphere" class="hint">✦ Chạm vào quả cầu để vỡ ra ✦</div>
+<div id="hintDrag"   class="hint">✦ Kéo để xoay không gian 3D ✦</div>
 
 <div id="letterIcon">
   <div class="env-wrap">
@@ -154,25 +156,28 @@ html,body {
     <div class="env-l"></div>
     <div class="env-r"></div>
   </div>
-  <span>💌</span>
+  <span>Thư gửi bạn 💌</span>
 </div>
 
 <div id="letterModal">
   <div class="letter-paper" id="letterPaper">
     <button class="ltr-close" id="ltrClose">✕</button>
-    <div class="ltr-title">Gửi đến em</div>
+    <div class="ltr-title">✦ Gửi Người Phụ Nữ Tuyệt Vời ✦</div>
     <div class="ltr-hearts">🌸 💕 🌸</div>
     <div class="ltr-body">
-      Chúc em có ngày lễ 8/3 trọn vẹn,<br>
-      Chúc em luôn vui vẻ và hạnh phúc,<br>
-      Chúc em mỗi ngày đều cười tươi.<br><br>
-      <br>
-      Mong là món quà nhỏ kia sẽ làm em vui,<br>
-      Hẹn mỗi năm quà càng ngày càng bự hơn nhé<br>
-      
+      Trong cuộc đời này,<br>
+      bạn là ánh sáng dịu dàng nhất,<br>
+      là sức mạnh thầm lặng và phi thường.<br><br>
+      Mỗi nụ cười của bạn<br>
+      làm thế giới thêm ấm áp,<br>
+      mỗi bước đi của bạn<br>
+      đều tô điểm cho cuộc sống thêm ý nghĩa.<br><br>
+      Chúc bạn luôn được yêu thương,<br>
+      trân trọng và hạnh phúc<br>
+      mỗi ngày trong cuộc đời!
     </div>
     <div class="ltr-hearts" style="margin-top:16px">💐 🌺 💐</div>
-    <div class="ltr-sign">— From TrungKien</div>
+    <div class="ltr-sign">— Với tất cả yêu thương 💝</div>
   </div>
 </div>
 
@@ -420,10 +425,11 @@ function disperse() {
 }
 
 const MSGS = [
-  "À ờm thì...",
-  "Hôm nay là 8.3 nhỉ",
-  "Anh có món quà nho nhỏ này",
-  "Có chút sến súa nma mong em thấy vui",
+  "Chúc Mừng 8/3",
+  "Ngày Quốc Tế Phụ Nữ",
+  "Bạn thật tuyệt vời 💕",
+  "Luôn tỏa sáng nhé 🌸",
+  "Yêu bạn rất nhiều 💝"
 ];
 let msgIdx = 0;
 
