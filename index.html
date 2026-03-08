@@ -102,7 +102,11 @@ html,body {
 .ltr-close { position:absolute; top:12px; right:14px; background:none; border:none; color:#c94f7c; font-size:20px; cursor:pointer; }
 
 /* Date badge */
-
+#dateBadge {
+  position:fixed; top:20px; left:50%; transform:translateX(-50%);
+  z-index:50; color:rgba(255,182,193,0.6); font-size:11px; letter-spacing:4px;
+  display:none; text-shadow:0 0 10px rgba(255,105,180,0.4);
+}
 
 /* Music button */
 #musicBtn {
@@ -126,8 +130,8 @@ html,body {
 
 <canvas id="canvas"></canvas>
 <canvas id="threeCanvas"></canvas>
+<div id="dateBadge"></div>
 <div id="musicBtn" title="Nhạc nền"><span class="note">🎵</span></div>
-
 <div id="holdBtn">
   <div class="ring-wrap">
     <div class="ring-bg"></div>
@@ -137,6 +141,7 @@ html,body {
     <div class="inner-btn">💗</div>
   </div>
   <div class="btn-label">ẤN GIỮ ĐỂ BẮT ĐẦU</div>
+
 </div>
 
 <div id="hintSphere" class="hint">Chạm vào quả cầu</div>
@@ -156,19 +161,19 @@ html,body {
 <div id="letterModal">
   <div class="letter-paper" id="letterPaper">
     <button class="ltr-close" id="ltrClose">✕</button>
-    <div class="ltr-title">Gửi đến em</div>
+    <div class="ltr-title">✦ Gửi đến em ✦</div>
     <div class="ltr-hearts">🌸 💕 🌸</div>
     <div class="ltr-body">
-      Chúc em có ngày lễ 8/3 trọn vẹn,<br>
+      Chúc em có ngàu lễ 8/3 trọn vẹn,<br>
       Chúc em luôn vui vẻ và hạnh phúc,<br>
       Chúc em mỗi ngày đều cười tươi.<br><br>
       <br>
-      Mong là món quà nhỏ kia sẽ làm em vui,<br>
-      Hẹn mỗi năm quà càng ngày càng bự hơn nhé<br>
+      Mong em thích món quà nhỏ kia,<br>
+      hẹn lần sau sẽ có món quà thiệc là to bự<br>
       
     </div>
     <div class="ltr-hearts" style="margin-top:16px">💐 🌺 💐</div>
-    <div class="ltr-sign">— From TrungKien</div>
+    <div class="ltr-sign">—From TrungKien</div>
   </div>
 </div>
 
@@ -177,6 +182,9 @@ html,body {
 <script>
 // ══════════════════════════════════════════════════
 //  CONFIGURATION
+//  Đặt đường dẫn ảnh thực của bạn vào mảng này.
+//  Ảnh phải nằm trong thư mục images/ cùng cấp.
+//  Ví dụ: 'images/photo1.jpg'
 // ══════════════════════════════════════════════════
 const IMAGE_PATHS = [
   'images/img1.png',
@@ -262,12 +270,21 @@ class Pt {
     if (this.a < .05) { this.a = .05; this.ad =  1; }
   }
   draw() {
-    // Mobile: Vẽ hạt đơn giản (Solid Circle) thay vì Gradient cầu kỳ
+    // Mobile: Vẽ hạt đơn giản (Solid Circle) nhưng CỰC KỲ RÕ NÉT (High Alpha)
     if (isMobile) {
-        ctx.fillStyle = `rgba(255, 105, 180, ${this.a})`; // Pink solid
+        // Tăng độ sáng và alpha để chữ nổi bật hẳn lên nền đen
+        ctx.fillStyle = `rgba(255, 105, 180, ${Math.min(this.a + 0.4, 1)})`; // Base alpha + 0.4
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.br, 0, Math.PI*2);
+        ctx.arc(this.x, this.y, this.br * 1.2, 0, Math.PI*2); // Tăng size hạt thêm 20%
         ctx.fill();
+        
+        // Thêm nhân trắng nhỏ ở giữa để tạo hiệu ứng lấp lánh (sparkle) giúp chữ sắc hơn
+        if(this.atTarget) {
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.br * 0.5, 0, Math.PI*2);
+            ctx.fill();
+        }
         return;
     }
 
@@ -417,9 +434,9 @@ function disperse() {
 
 const MSGS = [
   "À ờm thì...",
-  "Hôm nay là 8.3 nhỉ",
-  "Anh có món quà nho nhỏ này",
-  "Có chút sến súa nma mong em thấy vui",
+  "Hôm nay là 8.3",
+  "Anh có món quà nho nhỏ,",
+  "Mong  là sẽ làm em vui",
 ];
 let msgIdx = 0;
 
@@ -430,7 +447,7 @@ function runMessages() {
     return;
   }
   morphText(MSGS[msgIdx++]);
-  // Giữ lại 5.5s để dễ đọc
+  // Tăng thời gian dừng chữ lên 5.5s (5500ms) để dễ đọc hơn
   setTimeout(() => { disperse(); setTimeout(runMessages, 1050); }, 5500);
 }
 
@@ -473,11 +490,9 @@ function cancelHold() {
 function onComplete() {
   isHolding = false; STATE = 1;
   gsap.to(holdBtn, { opacity:0, scale:.4, duration:.6, ease:'back.in', onComplete:()=>holdBtn.style.display='none' });
-  
-  
-  // Tự động bật nhạc
-  if (!audioObj) initMusic(); 
-
+  const db = document.getElementById('dateBadge');
+  db.style.display = 'block';
+  gsap.from(db, { opacity:0, y:-10, duration:1 });
   setTimeout(runMessages, 500);
 }
 
@@ -584,7 +599,7 @@ function showSphereStage() {
   cancelAnimationFrame(raf2d);
   gsap.to(canvas, { opacity:0, duration:1.5, onComplete:()=>canvas.style.display='none' });
   threeCanvas.style.display = 'block';
-
+  gsap.to('#dateBadge', { opacity:.45, duration:.5 });
   initThree();
 
   const count = IMAGE_PATHS.length > 0 ? Math.max(IMAGE_PATHS.length, 36) : 48;
@@ -596,9 +611,9 @@ function showSphereStage() {
 }
 
 function buildSphere(textures) {
-  const R     = 2.9;
+  const R     = 2.9; // Trả về kích thước cầu ban đầu (vừa vặn màn hình)
   const N     = textures.length;
-  const iW    = Math.min(.72, W()/780);
+  const iW    = Math.min(1.2, W()/650); // Tăng kích thước ảnh lên đáng kể (To hơn nữa)
   const iH    = iW * 1.35;
   meshes      = [];
   sphereGroup = new THREE.Group();
@@ -661,8 +676,28 @@ function explodeSphere() {
   });
   scene.remove(sphereGroup);
 
+  // Scatter with depth parallax — like images 1 & 2
+  meshes.forEach((m, i) => {
+    const dir = m.userData.origPos.clone().normalize();
+    // Varied Z for near/far depth
+    const zBias = -1 - Math.random() * 14;
+    const xyDist= 5 + Math.random() * 10;
+    const target = {
+      x: dir.x * xyDist + (Math.random()-.5)*6,
+      y: dir.y * xyDist + (Math.random()-.5)*6,
+      z: dir.z * 2.5 + zBias
+    };
+    const scl = .5 + Math.random() * 1.1;
+    const dl  = Math.random() * .4;
+    gsap.to(m.position, { ...target, duration:1.7+Math.random()*.8, delay:dl, ease:'power2.out' });
+    gsap.to(m.scale,    { x:scl, y:scl, z:scl, duration:1.5, delay:dl });
+    gsap.to(m.rotation, { x:(Math.random()-.5)*.5, y:(Math.random()-.5)*.5, z:(Math.random()-.5)*.35, duration:1.8, delay:dl, ease:'power1.out' });
+    gsap.to(m.material,        { opacity:.9,  duration:1, delay:dl });
+    gsap.to(m.userData.glowMat,{ opacity:.35, duration:1, delay:dl });
+  });
+
   // Hiệu ứng hạt bay lên sau khi nổ
-  startRisingParticles();
+  startRisingParticles(); // Đổi thành hàm bay liên tục
 
   setTimeout(()=>{ document.getElementById('hintDrag').style.display='block'; }, 1100);
   setTimeout(()=>{
@@ -895,3 +930,5 @@ function autoStartMusic() {
 document.addEventListener('mousedown', autoStartMusic, { once:true });
 document.addEventListener('touchstart', autoStartMusic, { once:true, passive:true });
 </script>
+</body>
+</html>
