@@ -473,9 +473,7 @@ function cancelHold() {
 function onComplete() {
   isHolding = false; STATE = 1;
   gsap.to(holdBtn, { opacity:0, scale:.4, duration:.6, ease:'back.in', onComplete:()=>holdBtn.style.display='none' });
-  const db = document.getElementById('dateBadge');
-  db.style.display = 'block';
-  gsap.from(db, { opacity:0, y:-10, duration:1 });
+  
   
   // Tự động bật nhạc
   if (!audioObj) initMusic(); 
@@ -586,7 +584,7 @@ function showSphereStage() {
   cancelAnimationFrame(raf2d);
   gsap.to(canvas, { opacity:0, duration:1.5, onComplete:()=>canvas.style.display='none' });
   threeCanvas.style.display = 'block';
-  gsap.to('#dateBadge', { opacity:.45, duration:.5 });
+
   initThree();
 
   const count = IMAGE_PATHS.length > 0 ? Math.max(IMAGE_PATHS.length, 36) : 48;
@@ -663,25 +661,8 @@ function explodeSphere() {
   });
   scene.remove(sphereGroup);
 
-  // Scatter with depth parallax — like images 1 & 2
-  meshes.forEach((m, i) => {
-    const dir = m.userData.origPos.clone().normalize();
-    // Varied Z for near/far depth
-    const zBias = -1 - Math.random() * 14;
-    const xyDist= 5 + Math.random() * 10;
-    const target = {
-      x: dir.x * xyDist + (Math.random()-.5)*6,
-      y: dir.y * xyDist + (Math.random()-.5)*6,
-      z: dir.z * 2.5 + zBias
-    };
-    const scl = .5 + Math.random() * 1.1;
-    const dl  = Math.random() * .4;
-    gsap.to(m.position, { ...target, duration:1.7+Math.random()*.8, delay:dl, ease:'power2.out' });
-    gsap.to(m.scale,    { x:scl, y:scl, z:scl, duration:1.5, delay:dl });
-    gsap.to(m.rotation, { x:(Math.random()-.5)*.5, y:(Math.random()-.5)*.5, z:(Math.random()-.5)*.35, duration:1.8, delay:dl, ease:'power1.out' });
-    gsap.to(m.material,        { opacity:.9,  duration:1, delay:dl });
-    gsap.to(m.userData.glowMat,{ opacity:.35, duration:1, delay:dl });
-  });
+  // Hiệu ứng hạt bay lên sau khi nổ
+  startRisingParticles();
 
   setTimeout(()=>{ document.getElementById('hintDrag').style.display='block'; }, 1100);
   setTimeout(()=>{
@@ -689,6 +670,79 @@ function explodeSphere() {
     li.style.display='block';
     gsap.from(li,{opacity:0,scale:0,duration:.9,ease:'back.out(1.7)'});
   }, 1500);
+}
+
+// Hàm tạo hạt bay lên liên tục, chậm rãi (Continuous Ambient Dust)
+function startRisingParticles() {
+  const count = 300; // Số lượng hạt duy trì
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(count * 3);
+  const speeds = new Float32Array(count); // Tốc độ riêng cho từng hạt
+  
+  for(let i=0; i<count; i++) {
+    const i3 = i*3;
+    // Phân bố ngẫu nhiên trong không gian nổ
+    pos[i3]   = (Math.random()-.5) * 30; // X rộng
+    pos[i3+1] = (Math.random()-.5) * 30; // Y cao
+    pos[i3+2] = (Math.random()-.5) * 20; // Z sâu
+    speeds[i] = 0.02 + Math.random() * 0.03; // Tốc độ bay chậm
+  }
+  
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  
+  const mat = new THREE.PointsMaterial({
+    color: 0xffb6c1, // Hồng phấn nhạt
+    size: 0.3,
+    transparent: true,
+    opacity: 0.8,
+    map: getSoftParticleTexture(), // Dùng texture tròn mềm
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+  
+  // Animation Loop riêng cho hạt bụi
+  function animateDust() {
+    if(STATE !== 3) return; // Chỉ chạy khi đã nổ
+    requestAnimationFrame(animateDust);
+    
+    const positions = geo.attributes.position.array;
+    
+    for(let i=0; i<count; i++) {
+      const i3 = i*3;
+      positions[i3+1] += speeds[i]; // Bay lên từ từ
+      
+      // Nếu bay quá cao thì reset xuống dưới
+      if(positions[i3+1] > 15) {
+        positions[i3+1] = -15;
+        positions[i3]   = (Math.random()-.5) * 30; // Random lại vị trí X
+        positions[i3+2] = (Math.random()-.5) * 20; // Random lại vị trí Z
+      }
+    }
+    geo.attributes.position.needsUpdate = true;
+    
+    // Rung nhẹ toàn bộ hệ hạt
+    points.rotation.y += 0.0005;
+  }
+  
+  animateDust();
+}
+
+// Tạo texture đốm sáng mềm cho hạt đẹp hơn
+function getSoftParticleTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32; canvas.height = 32;
+    const context = canvas.getContext('2d');
+    const gradient = context.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.4, 'rgba(255,182,193,0.5)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 32, 32);
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
 }
 
 // ── Drag rotate in stage 3 ──
