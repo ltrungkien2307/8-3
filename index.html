@@ -9,11 +9,10 @@
 html,body { 
     width:100%; height:100%; overflow:hidden; background:#000; 
     touch-action:none; -webkit-tap-highlight-color:transparent;
-    position: fixed;
+    position: fixed; /* Fix scroll bounce on iOS */
 }
 #canvas { position:fixed; top:0; left:0; width:100%; height:100%; display:block; z-index: 1; }
 #threeCanvas { position:fixed; top:0; left:0; width:100%; height:100%; display:none; pointer-events:auto; z-index: 2; }
-#dustCanvas { position:fixed; top:0; left:0; width:100%; height:100%; display:none; pointer-events:none; z-index: 3; }
 
 /* Hold button */
 #holdBtn {
@@ -131,7 +130,6 @@ html,body {
 
 <canvas id="canvas"></canvas>
 <canvas id="threeCanvas"></canvas>
-<canvas id="dustCanvas"></canvas>
 <div id="musicBtn" title="Nhạc nền"><span class="note">🎵</span></div>
 
 <div id="holdBtn">
@@ -171,6 +169,7 @@ html,body {
       <br>
       Mong là món quà nhỏ kia sẽ làm em vui,<br>
       Hẹn mỗi năm quà càng ngày càng bự hơn nhé<br>
+      
     </div>
     <div class="ltr-hearts" style="margin-top:16px">💐 🌺 💐</div>
     <div class="ltr-sign">— From TrungKien</div>
@@ -184,9 +183,18 @@ html,body {
 //  CONFIGURATION
 // ══════════════════════════════════════════════════
 const IMAGE_PATHS = [
-  'images/img1.png','images/img2.png','images/img3.png','images/img4.png',
-  'images/img5.png','images/img6.png','images/img7.png','images/img8.png',
-  'images/img9.png','images/img10.png','images/img11.png','images/img12.png',
+  'images/img1.png',
+  'images/img2.png',
+  'images/img3.png',
+  'images/img4.png',
+  'images/img5.png',
+  'images/img6.png',
+  'images/img7.png',
+  'images/img8.png',
+  'images/img9.png',
+  'images/img10.png',
+  'images/img11.png',
+  'images/img12.png',
 ];
 
 // ══════════════════════════════════════════════════
@@ -197,10 +205,10 @@ const H = () => window.innerHeight;
 let STATE = 0; // 0=fireflies 1=text 2=sphere 3=explode
 
 // ──────────────────────────────────────────────────
-//  2D CANVAS — Fireflies + Particle Text
+//  2D CANVAS — Fireflies + Particle Text (Mobile Optimized)
 // ──────────────────────────────────────────────────
 const canvas = document.getElementById('canvas');
-const ctx    = canvas.getContext('2d', { alpha: false });
+const ctx    = canvas.getContext('2d', { alpha: false }); // Optimization: disable transparency
 canvas.width = W(); canvas.height = H();
 
 window.addEventListener('resize', () => {
@@ -208,37 +216,46 @@ window.addEventListener('resize', () => {
   offC.width  = W(); offC.height  = H();
 });
 
+// Detect Mobile
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || W() < 800;
+
+// ── Particles Optimization ──
+// PC: 3500, Mobile: 1200 (Giảm số lượng hạt để hết lag)
 const NPART = isMobile ? 1200 : 3500;
 const parts  = [];
 
 class Pt {
-  constructor() { this.reset(true); }
+  constructor() {
+    this.reset(true);
+  }
   reset(init) {
     this.x  = Math.random() * W();
     this.y  = init ? Math.random() * H() : -10;
     this.tx = this.x; this.ty = this.y;
     this.vx = (Math.random()-.5) * .45;
     this.vy = (Math.random()-.5) * .45;
-    this.br = isMobile ? Math.random() * 1.8 + .5 : Math.random() * 1.2 + .3;
+    // Mobile: Tăng kích thước hạt lên chút để bù lại số lượng ít
+    this.br = isMobile ? Math.random() * 1.8 + .5 : Math.random() * 1.2 + .3; 
     this.r  = this.br;
     this.a  = Math.random() * .65 + .2;
     this.ad = Math.random() > .5 ? 1 : -1;
     this.as = Math.random() * .012 + .004;
-    this.h  = Math.random() * 55 + 295;
+    this.h  = Math.random() * 55 + 295;   
     this.ph = Math.random() * Math.PI * 2;
     this.morphing = false;
-    this.atTarget = false;
+    this.atTarget = false; 
   }
   update(t) {
     if (this.morphing) {
-      const dx = this.tx - this.x, dy = this.ty - this.y;
-      this.x += dx * .07; this.y += dy * .07;
+      const dx = this.tx - this.x;
+      const dy = this.ty - this.y;
+      this.x += dx * .07;
+      this.y += dy * .07;
       this.atTarget = (dx*dx + dy*dy) < 2.25;
     } else {
       this.atTarget = false;
-      this.x += this.vx + Math.sin(t*.0009 + this.ph) * .28;
-      this.y += this.vy + Math.cos(t*.0008 + this.ph*1.4) * .22;
+      this.x += this.vx + Math.sin(t*.0009 + this.ph)      * .28;
+      this.y += this.vy + Math.cos(t*.0008 + this.ph*1.4)  * .22;
       if (this.x < -5)    this.x = W()+5;
       if (this.x > W()+5) this.x = -5;
       if (this.y < -5)    this.y = H()+5;
@@ -249,13 +266,16 @@ class Pt {
     if (this.a < .05) { this.a = .05; this.ad =  1; }
   }
   draw() {
+    // Mobile: Vẽ hạt đơn giản (Solid Circle) thay vì Gradient cầu kỳ
     if (isMobile) {
-      ctx.fillStyle = `rgba(255, 105, 180, ${this.a})`;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.br, 0, Math.PI*2);
-      ctx.fill();
-      return;
+        ctx.fillStyle = `rgba(255, 105, 180, ${this.a})`; // Pink solid
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.br, 0, Math.PI*2);
+        ctx.fill();
+        return;
     }
+
+    // PC: Giữ nguyên hiệu ứng Gradient đẹp
     if (this.morphing && this.atTarget) {
       ctx.save();
       ctx.globalCompositeOperation = 'source-over';
@@ -301,24 +321,31 @@ class Pt {
     }
   }
 }
+
 for (let i = 0; i < NPART; i++) parts.push(new Pt());
 
+// ── Offscreen text sampling ──
 const offC   = document.createElement('canvas');
 const offCtx = offC.getContext('2d');
 offC.width = W(); offC.height = H();
 
 function sampleText(text, maxPts) {
+  // Use 2x resolution offscreen canvas for super crisp sampling
   const SCALE = 2;
   offC.width  = W() * SCALE;
   offC.height = H() * SCALE;
   offCtx.clearRect(0, 0, offC.width, offC.height);
   offCtx.scale(SCALE, SCALE);
+
   const mobile   = W() < 600;
   const fontSize = mobile
     ? Math.min(W() / (text.length * .50 + .3), H() / 5, 72)
     : Math.min(W() / (text.length * .42 + .2), H() / 4, 110);
+
   offCtx.textAlign    = 'center';
   offCtx.textBaseline = 'middle';
+
+  // Line wrap
   offCtx.font = `900 ${fontSize}px Georgia,serif`;
   const words = text.split(' ');
   const maxW  = W() * .88;
@@ -330,20 +357,33 @@ function sampleText(text, maxPts) {
     else line = test;
   }
   lines.push(line);
+
   const lh = fontSize * 1.5;
   const sy = H()/2 - (lines.length-1)*lh/2;
+
   lines.forEach((l, i) => {
+    const y = sy + i * lh;
+    // Fill first (solid pixels), then NO stroke — stroke adds blur
     offCtx.fillStyle = '#fff';
-    offCtx.fillText(l, W()/2, sy + i * lh);
+    offCtx.fillText(l, W()/2, y);
   });
+
+  // Reset scale
   offCtx.setTransform(1,0,0,1,0,0);
+
   const id   = offCtx.getImageData(0, 0, offC.width, offC.height).data;
   const pts  = [];
+  // Sample every 2px on the 2x canvas = every 1px on screen
   const step = 2;
-  for (let y = 0; y < offC.height; y += step)
-    for (let x = 0; x < offC.width; x += step)
-      if (id[(y * offC.width + x) * 4 + 3] > 128)
+  for (let y = 0; y < offC.height; y += step) {
+    for (let x = 0; x < offC.width; x += step) {
+      if (id[(y * offC.width + x) * 4 + 3] > 128) {
+        // Map back to screen coords
         pts.push({ x: x / SCALE, y: y / SCALE });
+      }
+    }
+  }
+  // Fisher-Yates shuffle
   for (let i = pts.length-1; i > 0; i--) {
     const j = Math.floor(Math.random()*(i+1));
     [pts[i], pts[j]] = [pts[j], pts[i]];
@@ -354,9 +394,14 @@ function sampleText(text, maxPts) {
 function morphText(text) {
   const pts = sampleText(text, NPART);
   parts.forEach((p, i) => {
-    p.morphing = true; p.atTarget = false;
-    if (i < pts.length) { p.tx = pts[i].x; p.ty = pts[i].y; }
-    else {
+    p.morphing  = true;
+    p.atTarget  = false;
+    if (i < pts.length) {
+      // NO jitter — exact pixel positions for crisp edges
+      p.tx = pts[i].x;
+      p.ty = pts[i].y;
+    } else {
+      // Excess particles scatter off to edges
       const ang = Math.random()*Math.PI*2;
       p.tx = W()/2 + Math.cos(ang)*W()*.75;
       p.ty = H()/2 + Math.sin(ang)*H()*.75;
@@ -367,24 +412,38 @@ function morphText(text) {
 function disperse() {
   parts.forEach(p => {
     p.morphing = true;
-    const ang = Math.random()*Math.PI*2, dr = .2 + Math.random()*.7;
+    const ang = Math.random()*Math.PI*2;
+    const dr  = .2 + Math.random()*.7;
     p.tx = W()/2 + Math.cos(ang)*W()*dr;
     p.ty = H()/2 + Math.sin(ang)*H()*dr;
   });
 }
 
-const MSGS = ["À ờm thì...","Hôm nay là 8.3 nhỉ","Anh có món quà nho nhỏ này","Có chút sến súa nma mong em thấy vui",];
+const MSGS = [
+  "À ờm thì...",
+  "Hôm nay là 8.3 nhỉ",
+  "Anh có món quà nho nhỏ này",
+  "Có chút sến súa nma mong em thấy vui",
+];
 let msgIdx = 0;
+
 function runMessages() {
-  if (msgIdx >= MSGS.length) { disperse(); setTimeout(showSphereStage, 1500); return; }
+  if (msgIdx >= MSGS.length) {
+    disperse();
+    setTimeout(showSphereStage, 1500);
+    return;
+  }
   morphText(MSGS[msgIdx++]);
+  // Giữ lại 5.5s để dễ đọc
   setTimeout(() => { disperse(); setTimeout(runMessages, 1050); }, 5500);
 }
 
+// 2D loop
 let raf2d, t2 = 0;
 function loop2D() {
   raf2d = requestAnimationFrame(loop2D);
   t2++;
+  // Slightly slower fade when morphing so sharp dots stay visible
   const fadeAlpha = STATE === 1 ? 0.25 : 0.18;
   ctx.fillStyle = `rgba(0,0,0,${fadeAlpha})`;
   ctx.fillRect(0, 0, W(), H());
@@ -402,6 +461,7 @@ ring.style.strokeDasharray  = CIRC;
 ring.style.strokeDashoffset = CIRC;
 
 let holdAnim = null, isHolding = false;
+
 function startHold(e) {
   e && e.preventDefault();
   if (STATE !== 0 || isHolding) return;
@@ -420,178 +480,17 @@ function onComplete() {
   const db = document.getElementById('dateBadge');
   db.style.display = 'block';
   gsap.from(db, { opacity:0, y:-10, duration:1 });
-  if (!audioObj) initMusic();
+  
+  // Tự động bật nhạc
+  if (!audioObj) initMusic(); 
+
   setTimeout(runMessages, 500);
 }
+
 holdBtn.addEventListener('mousedown',  startHold);
 holdBtn.addEventListener('touchstart', startHold, { passive:false });
 document.addEventListener('mouseup',   cancelHold);
 document.addEventListener('touchend',  cancelHold);
-
-// ══════════════════════════════════════════════════
-//  AMBIENT DUST CANVAS (2D overlay, always-on after explode)
-// ══════════════════════════════════════════════════
-const dustCanvas = document.getElementById('dustCanvas');
-const dCtx = dustCanvas.getContext('2d');
-dustCanvas.width = W(); dustCanvas.height = H();
-
-window.addEventListener('resize', () => {
-  dustCanvas.width = W(); dustCanvas.height = H();
-  // Rebuild soft-glow sprite on resize
-  buildSoftSprite();
-});
-
-// Pre-render a soft radial glow sprite for dust particles
-let softSprite = null;
-const SPRITE_SIZE = 32;
-
-function buildSoftSprite() {
-  const sc = document.createElement('canvas');
-  sc.width = SPRITE_SIZE; sc.height = SPRITE_SIZE;
-  const sx = sc.getContext('2d');
-  const cx = SPRITE_SIZE / 2, cy = SPRITE_SIZE / 2;
-  const gr = sx.createRadialGradient(cx, cy, 0, cx, cy, SPRITE_SIZE / 2);
-  gr.addColorStop(0,    'rgba(255,200,230,1)');
-  gr.addColorStop(0.25, 'rgba(255,150,200,0.7)');
-  gr.addColorStop(0.55, 'rgba(255,105,180,0.3)');
-  gr.addColorStop(1,    'rgba(255,80,160,0)');
-  sx.fillStyle = gr;
-  sx.beginPath();
-  sx.arc(cx, cy, SPRITE_SIZE/2, 0, Math.PI*2);
-  sx.fill();
-  softSprite = sc;
-}
-buildSoftSprite();
-
-// Dust particle pool — continuous ambient, slow, dreamy
-const DUST_COUNT = isMobile ? 80 : 160;
-const dustParticles = [];
-
-class DustPt {
-  constructor(immediate) {
-    this.init(immediate);
-  }
-  init(immediate) {
-    // Spawn anywhere on screen; if !immediate, start below bottom
-    this.x    = Math.random() * W();
-    this.y    = immediate ? Math.random() * H() : H() + Math.random() * 60;
-    this.size = Math.random() * 10 + 4;         // 4–14px soft blob
-    this.a    = 0;                                // fade in
-    this.maxA = Math.random() * 0.45 + 0.1;      // 0.1–0.55 opacity
-    this.vy   = -(Math.random() * 0.35 + 0.08);  // float upward slowly
-    this.vx   = (Math.random() - 0.5) * 0.22;   // gentle horizontal drift
-    this.wobbleAmp  = Math.random() * 0.8 + 0.2; // side-to-side amplitude
-    this.wobbleFreq = Math.random() * 0.02 + 0.005;
-    this.wobbleOff  = Math.random() * Math.PI * 2;
-    this.age  = 0;
-    this.life = Math.random() * 420 + 200;       // frames alive
-    // Hue: pink to lavender
-    this.hue  = Math.random() * 60 + 300;        // 300(magenta)–360(red-pink)
-    this.sat  = Math.random() * 30 + 70;
-  }
-  update(frame) {
-    this.age++;
-    this.x += this.vx + Math.sin(frame * this.wobbleFreq + this.wobbleOff) * this.wobbleAmp;
-    this.y += this.vy;
-    // Fade in first 40 frames, fade out last 60 frames
-    const fadeIn  = Math.min(1, this.age / 40);
-    const fadeOut = Math.max(0, 1 - Math.max(0, this.age - (this.life - 60)) / 60);
-    this.a = this.maxA * fadeIn * fadeOut;
-  }
-  get dead() { return this.age >= this.life || this.y < -this.size * 2; }
-  draw() {
-    if (!softSprite) return;
-    dCtx.save();
-    dCtx.globalAlpha = this.a;
-    dCtx.globalCompositeOperation = 'lighter';
-    const s = this.size * 2;
-    dCtx.drawImage(softSprite, this.x - s/2, this.y - s/2, s, s);
-    dCtx.restore();
-  }
-}
-
-// Init pool immediately (some alive on screen)
-for (let i = 0; i < DUST_COUNT; i++) {
-  dustParticles.push(new DustPt(true));
-}
-
-// Burst particles — emitted at explode moment
-const burstParticles = [];
-
-class BurstPt {
-  constructor(x, y) {
-    const ang = Math.random() * Math.PI * 2;
-    const spd = Math.random() * 4.5 + 1.5;
-    this.x    = x + (Math.random()-0.5) * 80;
-    this.y    = y + (Math.random()-0.5) * 80;
-    this.vx   = Math.cos(ang) * spd;
-    this.vy   = Math.sin(ang) * spd - 1.5; // bias upward
-    this.size = Math.random() * 14 + 5;
-    this.a    = Math.random() * 0.7 + 0.3;
-    this.life = Math.random() * 80 + 40;
-    this.age  = 0;
-    this.drag = 0.96;
-    this.gravity = 0.04;
-    this.hue  = Math.random() * 60 + 300;
-  }
-  update() {
-    this.age++;
-    this.vx *= this.drag;
-    this.vy  = this.vy * this.drag + this.gravity;
-    this.x  += this.vx;
-    this.y  += this.vy;
-    this.a   = (1 - this.age / this.life) * 0.8;
-    this.size *= 0.985;
-  }
-  get dead() { return this.age >= this.life || this.size < 1; }
-  draw() {
-    if (!softSprite) return;
-    dCtx.save();
-    dCtx.globalAlpha = Math.max(0, this.a);
-    dCtx.globalCompositeOperation = 'lighter';
-    const s = this.size * 2;
-    dCtx.drawImage(softSprite, this.x - s/2, this.y - s/2, s, s);
-    dCtx.restore();
-  }
-}
-
-function emitBurst(cx, cy, count) {
-  for (let i = 0; i < count; i++) {
-    burstParticles.push(new BurstPt(cx, cy));
-  }
-}
-
-// Emit burst from sphere center when it explodes
-function triggerSphereExplosion() {
-  const cx = W()/2, cy = H()/2;
-  // Multiple waves
-  emitBurst(cx, cy, isMobile ? 80 : 180);
-  setTimeout(() => emitBurst(cx, cy, isMobile ? 40 : 90), 200);
-  setTimeout(() => emitBurst(cx, cy, isMobile ? 30 : 60), 450);
-}
-
-let dustFrame = 0;
-let dustRaf = null;
-
-function loopDust() {
-  dustRaf = requestAnimationFrame(loopDust);
-  dustFrame++;
-  dCtx.clearRect(0, 0, W(), H());
-
-  // Replenish dead ambient dust
-  for (let i = dustParticles.length - 1; i >= 0; i--) {
-    dustParticles[i].update(dustFrame);
-    if (dustParticles[i].dead) dustParticles.splice(i, 1, new DustPt(false));
-    else dustParticles[i].draw();
-  }
-
-  // Burst particles
-  for (let i = burstParticles.length - 1; i >= 0; i--) {
-    burstParticles[i].update();
-    if (burstParticles[i].dead) burstParticles.splice(i, 1);
-    else burstParticles[i].draw();
-  }
-}
 
 // ──────────────────────────────────────────────────
 //  THREE.JS
@@ -599,7 +498,10 @@ function loopDust() {
 const threeCanvas = document.getElementById('threeCanvas');
 let renderer, scene, camera, sphereGroup;
 let meshes     = [];
+let rotTarget  = { rx:0, ry:0 };
+let rotCurrent = { rx:0, ry:0 };
 
+// Procedural photo (fallback)
 function makeProceduralTex(i) {
   const pc  = document.createElement('canvas');
   pc.width  = 256; pc.height = 320;
@@ -617,6 +519,7 @@ function makeProceduralTex(i) {
   g.addColorStop(0,pal[0]); g.addColorStop(.5,pal[1]); g.addColorStop(1,pal[2]);
   c.fillStyle = g;
   c.roundRect(0,0,256,320,22); c.fill();
+  // Subtle circles
   c.fillStyle = 'rgba(255,255,255,.07)';
   for (let k=0;k<5;k++){c.beginPath();c.arc(Math.random()*256,Math.random()*320,Math.random()*55+15,0,Math.PI*2);c.fill();}
   const em = ['💕','🌸','💝','🌺','💖','✨','🌷','💗','🎀','💞','🌹','💓'];
@@ -651,11 +554,14 @@ function initThree() {
   renderer.setSize(W(), H());
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setClearColor(0x06000d, 1);
+
   scene  = new THREE.Scene();
   scene.background = new THREE.Color(0x06000d);
   camera = new THREE.PerspectiveCamera(55, W()/H(), .1, 300);
   camera.position.z = 7.5;
+
   addStars();
+
   window.addEventListener('resize', ()=>{
     camera.aspect = W()/H();
     camera.updateProjectionMatrix();
@@ -668,10 +574,11 @@ function addStars() {
   const v    = [];
   for (let i=0;i<1500;i++) v.push((Math.random()-.5)*250,(Math.random()-.5)*250,(Math.random()-.5)*250);
   geo.setAttribute('position', new THREE.Float32BufferAttribute(v,3));
+  // Mix of white and pink stars
   const colors = [];
   for (let i=0;i<1500;i++) {
-    if (Math.random()<.3) { colors.push(1,.7,.85); }
-    else                  { colors.push(.95,.9,1); }
+    if (Math.random()<.3) { colors.push(1,.7,.85); } // pink
+    else                  { colors.push(.95,.9,1); } // white
   }
   geo.setAttribute('color', new THREE.Float32BufferAttribute(colors,3));
   const mat = new THREE.PointsMaterial({ size:.18, vertexColors:true, transparent:true, opacity:.75 });
@@ -683,9 +590,6 @@ function showSphereStage() {
   cancelAnimationFrame(raf2d);
   gsap.to(canvas, { opacity:0, duration:1.5, onComplete:()=>canvas.style.display='none' });
   threeCanvas.style.display = 'block';
-  // Show dust canvas and start loop
-  dustCanvas.style.display = 'block';
-  loopDust();
   gsap.to('#dateBadge', { opacity:.45, duration:.5 });
   initThree();
 
@@ -700,15 +604,11 @@ function showSphereStage() {
 function buildSphere(textures) {
   const R     = 2.9;
   const N     = textures.length;
-
-  // ── LARGER images: increased width/height ──
-  // Original: iW = min(0.72, W/780), iH = iW*1.35
-  // New: ~40% bigger → min(1.05, W/530)
-  const iW    = Math.min(1.05, W() / 530);
+  const iW    = Math.min(.72, W()/780);
   const iH    = iW * 1.35;
-
   meshes      = [];
   sphereGroup = new THREE.Group();
+
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
   for (let i=0; i<N; i++) {
@@ -721,17 +621,20 @@ function buildSphere(textures) {
     const mat  = new THREE.MeshBasicMaterial({ map:textures[i], side:THREE.DoubleSide, transparent:true, opacity:0 });
     const geo  = new THREE.PlaneGeometry(iW, iH);
     const mesh = new THREE.Mesh(geo, mat);
+
     mesh.position.copy(pos);
     mesh.lookAt(0,0,0);
-    mesh.rotateY(Math.PI);
+    mesh.rotateY(Math.PI); // face outward
 
-    // Pink glow frame — slightly thicker for larger images
+    // Pink glow frame
     const glowM = new THREE.MeshBasicMaterial({ color:0xff69b4, transparent:true, opacity:0, side:THREE.DoubleSide });
-    const glowP = new THREE.Mesh(new THREE.PlaneGeometry(iW+.09, iH+.09), glowM);
+    const glowP = new THREE.Mesh(new THREE.PlaneGeometry(iW+.07, iH+.07), glowM);
     glowP.position.z = -.015;
     mesh.add(glowP);
+
     mesh.userData = { origPos:pos.clone(), glow:glowP, glowMat:glowM };
 
+    // Fly-in from scatter
     mesh.position.set((Math.random()-.5)*24,(Math.random()-.5)*24,(Math.random()-.5)*24);
     sphereGroup.add(mesh);
     meshes.push(mesh);
@@ -746,14 +649,14 @@ function buildSphere(textures) {
 
 // ── Explode ──
 let exploded = false;
+
 function explodeSphere() {
   if (exploded || STATE!==2) return;
   exploded = true; STATE = 3;
+
   document.getElementById('hintSphere').style.display = 'none';
 
-  // Fire dust burst from sphere center
-  triggerSphereExplosion();
-
+  // Extract meshes to scene with world transforms
   meshes.forEach(m => {
     const wp = new THREE.Vector3(); m.getWorldPosition(wp);
     const wq = new THREE.Quaternion(); m.getWorldQuaternion(wq);
@@ -764,8 +667,10 @@ function explodeSphere() {
   });
   scene.remove(sphereGroup);
 
+  // Scatter with depth parallax — like images 1 & 2
   meshes.forEach((m, i) => {
     const dir = m.userData.origPos.clone().normalize();
+    // Varied Z for near/far depth
     const zBias = -1 - Math.random() * 14;
     const xyDist= 5 + Math.random() * 10;
     const target = {
@@ -790,9 +695,10 @@ function explodeSphere() {
   }, 1500);
 }
 
-// ── Drag ──
+// ── Drag rotate in stage 3 ──
 let drag = { on:false, x0:0, y0:0, vx:0, vy:0 };
 let rotX = 0, rotY = 0;
+
 function onDragStart(x,y){ if(STATE!==3)return; drag.on=true; drag.x0=x; drag.y0=y; drag.vx=0; drag.vy=0; }
 function onDragMove(x,y){
   if(!drag.on||STATE!==3)return;
@@ -809,35 +715,52 @@ threeCanvas.addEventListener('mouseup',   onDragEnd);
 threeCanvas.addEventListener('touchstart',e=>{if(STATE===3)onDragStart(e.touches[0].clientX,e.touches[0].clientY);});
 threeCanvas.addEventListener('touchmove', e=>{e.preventDefault();if(STATE===3)onDragMove(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
 threeCanvas.addEventListener('touchend',  onDragEnd);
-threeCanvas.addEventListener('click', ()=>{ if(STATE===2) explodeSphere(); });
-threeCanvas.addEventListener('touchend', e=>{ if(STATE===2){e.preventDefault();explodeSphere();} },{passive:false});
 
+// Explode on tap
+threeCanvas.addEventListener('click', ()=>{ if(STATE===2) explodeSphere(); });
+threeCanvas.addEventListener('touchend', e=>{
+  if(STATE===2){e.preventDefault();explodeSphere();}
+},{passive:false});
+
+// ── Three.js loop ──
 let threeRaf, driftT=0;
+// A group to hold all exploded meshes for rotation
+let worldRot = { x:0, y:0 };
+
 function loopThree() {
   threeRaf = requestAnimationFrame(loopThree);
   driftT++;
+
   if (STATE===2 && sphereGroup) {
+    // Earth rotation: Y axis only, slight wobble
     sphereGroup.rotation.y += .0045;
     sphereGroup.rotation.x  = Math.sin(driftT*.0025) * .06;
     sphereGroup.rotation.z  = Math.sin(driftT*.002)  * .015;
   }
+
   if (STATE===3) {
+    // Apply drag inertia to all meshes (simulate group rotation)
     if (!drag.on) {
       drag.vx *= .93; drag.vy *= .93;
       rotY    += drag.vx; rotX += drag.vy;
       rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
     }
+    // Rotate every mesh around origin (group-like)
     const cosX=Math.cos(rotX), sinX=Math.sin(rotX);
     const cosY=Math.cos(rotY), sinY=Math.sin(rotY);
     meshes.forEach(m => {
+      // Store original scattered pos on first frame
       if (!m.userData.scatterSet) {
         m.userData.scatterPos = m.position.clone();
         m.userData.scatterRot = { x:m.rotation.x, y:m.rotation.y, z:m.rotation.z };
         m.userData.scatterSet = true;
         m.userData.driftZ = -(Math.random()*.003+.0005);
       }
+      // Drift toward camera (tunnel effect)
       m.userData.scatterPos.z += m.userData.driftZ;
       if (m.userData.scatterPos.z < -30) m.userData.scatterPos.z = 12;
+
+      // Rotate scatter pos around Y then X
       const sp  = m.userData.scatterPos;
       const x1  = sp.x*cosY + sp.z*sinY;
       const z1  = -sp.x*sinY + sp.z*cosY;
@@ -846,6 +769,7 @@ function loopThree() {
       m.position.set(x1, y1, z2);
     });
   }
+
   renderer.render(scene, camera);
 }
 
@@ -867,33 +791,57 @@ function closeLetter() {
   gsap.to(letterPaper, { scale:0, rotateX:-30, opacity:0, y:80, duration:.5, ease:'back.in',
     onComplete:()=>letterModal.classList.remove('show') });
 }
+
 letterIcon.addEventListener('click', openLetter);
 letterIcon.addEventListener('touchend', e=>{ e.preventDefault(); openLetter(); }, {passive:false});
 ltrClose.addEventListener('click', closeLetter);
 letterModal.addEventListener('click', e=>{ if(e.target===letterModal) closeLetter(); });
 
 // ──────────────────────────────────────────────────
-//  MUSIC
+//  MUSIC — HTML5 Audio (File thực: music.mp3)
 // ──────────────────────────────────────────────────
 let audioObj = null;
 const musicBtn = document.getElementById('musicBtn');
+
 function initMusic() {
   if (audioObj) return;
   audioObj = new Audio('music.mp3');
-  audioObj.loop = true; audioObj.volume = 0.5;
-  audioObj.play().then(() => { musicBtn.classList.add('playing'); })
-    .catch(e => console.log("Cần tương tác để phát nhạc"));
+  audioObj.loop = true;
+  audioObj.volume = 0.5;
+  audioObj.play().then(() => {
+    musicBtn.classList.add('playing');
+  }).catch(e => console.log("Cần tương tác để phát nhạc"));
 }
+
 function stopMusic() {
   if (!audioObj) return;
-  if (!audioObj.paused) { audioObj.pause(); musicBtn.classList.add('muted'); musicBtn.classList.remove('playing'); }
-  else { audioObj.play(); musicBtn.classList.remove('muted'); musicBtn.classList.add('playing'); }
+  if (!audioObj.paused) {
+    audioObj.pause();
+    musicBtn.classList.add('muted');
+    musicBtn.classList.remove('playing');
+  } else {
+    audioObj.play();
+    musicBtn.classList.remove('muted');
+    musicBtn.classList.add('playing');
+  }
 }
-musicBtn.addEventListener('click', () => { if (!audioObj) initMusic(); else stopMusic(); });
-musicBtn.addEventListener('touchend', e => { e.preventDefault(); if (!audioObj) initMusic(); else stopMusic(); }, { passive:false });
-function autoStartMusic() { if (!audioObj) initMusic(); }
+
+musicBtn.addEventListener('click', () => {
+  if (!audioObj) initMusic();
+  else stopMusic();
+});
+musicBtn.addEventListener('touchend', e => {
+  e.preventDefault();
+  if (!audioObj) initMusic();
+  else stopMusic();
+}, { passive:false });
+
+// Auto-start music on first user interaction (hold button press)
+function autoStartMusic() {
+  if (!audioObj) initMusic();
+  document.removeEventListener('mousedown', autoStartMusic);
+  document.removeEventListener('touchstart', autoStartMusic);
+}
 document.addEventListener('mousedown', autoStartMusic, { once:true });
 document.addEventListener('touchstart', autoStartMusic, { once:true, passive:true });
 </script>
-</body>
-</html>
